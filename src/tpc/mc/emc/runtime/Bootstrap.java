@@ -5,6 +5,7 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 
+import tpc.mc.emc.platform.standard.EMC;
 import tpc.mc.emc.platform.standard.IMath;
 import tpc.mc.emc.runtime.util.Reflect;
 import tpc.mc.emc.runtime.util.Selector;
@@ -19,32 +20,58 @@ public final class Bootstrap {
 	 * Start method invoked by Instrumentation API
 	 * */
 	public static final void premain(String arg, Instrumentation inst) throws Throwable {
-		Reflect.access(Reflect.located(Selector.class, "USER")).set(null, arg);
-		Impl impl = Selector.impl();
+		System.out.println("EMC RuntimeEnv Start! With EMC " + EMC.current());
 		
-		//set IMath INSTANCE
-		Reflect.access(Reflect.located(IMath.class, "INSTANCE")).set(null, impl.math());
+		//INIT SELECTOR
+		Reflect.located(Selector.class, "SELECTED").set(null, new Selector().select(arg));
+		Impl current = Selector.select();
 		
-		//register transformer
+		System.out.println("EMC Platform Implement " + current);
+		
+		//INIT IMATH
+		Reflect.located(IMath.class, "IMPL").set(null, current.math());
+		
+		//REGISTER CLASS TRANSFORMER
 		inst.addTransformer(new ClassFileTransformer() {
 			
 			@Override
-			public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+			public byte[] transform(ClassLoader arg0, String arg1, Class<?> arg2, ProtectionDomain arg3, byte[] arg4) throws IllegalClassFormatException {
 				try {
-					return impl.rule(classfileBuffer, className);
+					return current.rule(arg4, arg1);
 				} catch(Throwable e) {
 					e.printStackTrace();
 					
-					//exit the vm
+					//EXIT
 					Shutdown.exit(1);
 					return null;
 				}
 			}
 		}, true);
 		
-		//retransform
+		//RETRANSFORM
 		Class[] cs = inst.getAllLoadedClasses();
-		for(Class c : cs)
-			if(inst.isModifiableClass(c)) inst.retransformClasses(c);
+		for(Class c : cs) 
+			if(inst.isModifiableClass(c) && !c.getName().startsWith("java.lang.invoke.Lambda")) inst.retransformClasses(c);
+		
+		/*
+		 * FOR '!c.getName().startsWith("java.lang.invoke.Lambda")'
+		 * TRY THE CODE BELOW
+		 * 
+		 * static void premain(String arg, Instrumentation inst) {
+		 * 		
+		 * 		A.C();
+		 * 		
+		 * 		inst.retransformClasses(A.class); //THIS WILL CRASH THE JVM, AND 'inst.isModifiableClass(c)' RETURN TRUE!
+		 * }
+		 * 
+		 * static class A {
+		 * 		
+		 * 		static Supplier B = () -> null;
+		 * 		
+		 * 		static void C() {}
+		 * }
+		 * 
+		 * FINALLY I FIND IF THERE IS A FILTER '!c.getName().startsWith("java.lang.invoke.Lambda")', IT WILL RUN SAFELY
+		 * */
 	}
 }

@@ -1,9 +1,9 @@
 package tpc.mc.emc.runtime.util;
 
-import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.function.Supplier;
 
 /**
  * Reflect API Helper
@@ -11,39 +11,17 @@ import java.lang.reflect.Modifier;
 public final class Reflect {
 	
 	/**
-	 * Accessible a object
-	 * */
-	public static final <T extends AccessibleObject> T access(T access) {
-		try {
-			if(!access.isAccessible()) access.setAccessible(true);
-			else if(access instanceof Field) {
-				Field f = (Field) access;
-				
-				//try access modifiers
-				try {
-					Field modifiers = Field.class.getDeclaredField("modifiers");
-					modifiers.setAccessible(true);
-					modifiers.set(f, f.getModifiers() & ~Modifier.FINAL);
-				} catch(Throwable e) {}
-			}
-			
-			return access;
-		} catch(java.lang.Throwable e) {}
-		
-		return null;
-	}
-	
-	/**
 	 * Get a method safely
 	 * */
-	public static final Method located(Class<?> klass, String name, Class... params) {
+	public static final Method located(Class<?> klass, String name, Class<?>... params) {
 		try {
 			Method m;
 			
 			try {
 				m = klass.getMethod(name, params);
 			} catch(java.lang.Throwable e) {
-				m = access(klass.getDeclaredMethod(name, params));
+				m = klass.getDeclaredMethod(name, params);
+				m.setAccessible(true);
 			}
 			
 			return m;
@@ -75,9 +53,17 @@ public final class Reflect {
 			try {
 				f = klass.getField(name);
 			} catch(java.lang.Throwable e) {
-				f = access(klass.getDeclaredField(name));
+				f = klass.getDeclaredField(name);
+				f.setAccessible(true);
 			}
 			
+			//try access modifiers
+			int modi = f.getModifiers();
+			if(Modifier.isStatic(modi) && Modifier.isFinal(modi)) {
+				MODIFIERS.get().set(f, modi & ~Modifier.FINAL);
+			}
+			
+			//retrun result
 			return f;
 		} catch(Throwable e) {}
 		
@@ -100,13 +86,13 @@ public final class Reflect {
 	/**
 	 * Return in the future
 	 * */
-	public static final SafeCallable<Field> ilocate(Class<?> klass, String name) {
-		return new SafeCallable<Field>() {
+	public static final Supplier<Field> ilocate(Class<?> klass, String name) {
+		return new Supplier<Field>() {
 			
 			private Field cache = null;
 			
 			@Override
-			public Field call() {
+			public synchronized final Field get() {
 				return cache == null ? cache = located(klass, name) : cache;
 			}
 		};
@@ -115,13 +101,13 @@ public final class Reflect {
 	/**
 	 * Return in the future
 	 * */
-	public static final SafeCallable<Field> ilocate(String klass, String name) {
-		return new SafeCallable<Field>() {
+	public static final Supplier<Field> ilocate(String klass, String name) {
+		return new Supplier<Field>() {
 			
 			private Field cache = null;
 			
 			@Override
-			public Field call() {
+			public synchronized final Field get() {
 				return cache == null ? cache = located(klass, name) : cache;
 			}
 		};
@@ -130,13 +116,13 @@ public final class Reflect {
 	/**
 	 * Return in the future
 	 * */
-	public static final SafeCallable<Method> ilocate(Class<?> klass, String name, Class... params) {
-		return new SafeCallable<Method>() {
+	public static final Supplier<Method> ilocate(Class<?> klass, String name, Class... params) {
+		return new Supplier<Method>() {
 			
 			private Method cache = null;
 			
 			@Override
-			public Method call() {
+			public synchronized final Method get() {
 				return cache == null ? cache = located(klass, name, params) : cache;
 			}
 		};
@@ -145,15 +131,17 @@ public final class Reflect {
 	/**
 	 * Return in the future
 	 * */
-	public static final SafeCallable<Method> ilocate(String klass, String name, Class... params) {
-		return new SafeCallable<Method>() {
+	public static final Supplier<Method> ilocate(String klass, String name, Class... params) {
+		return new Supplier<Method>() {
 			
 			private Method cache = null;
 			
 			@Override
-			public Method call() {
+			public synchronized final Method get() {
 				return cache == null ? cache = located(klass, name, params) : cache;
 			}
 		};
 	}
+	
+	private static final Supplier<Field> MODIFIERS = ilocate(Field.class, "modifiers");
 }

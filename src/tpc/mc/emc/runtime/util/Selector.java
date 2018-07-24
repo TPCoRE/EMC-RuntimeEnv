@@ -1,5 +1,10 @@
 package tpc.mc.emc.runtime.util;
 
+import java.lang.reflect.Constructor;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
+
 import tpc.mc.emc.err.UnsupportedException;
 import tpc.mc.emc.runtime.Impl;
 
@@ -8,30 +13,82 @@ import tpc.mc.emc.runtime.Impl;
  * */
 public final class Selector {
 	
+	private final String[] suggs;
+	
 	/**
-	 * Get the current implement
+	 * Create a selector without any suggestions
 	 * */
-	public static final Impl impl() {
-		return STATIC.call();
+	public Selector() {
+		this(new String[0]);
 	}
 	
 	/**
-	 * Truly get
+	 * Create a selector with some suggestions
 	 * */
-	private static final Impl $impl() {
+	public Selector(String... suggs) {
+		this.suggs = suggs;
+	}
+	
+	/**
+	 * Select a implements with extend suggestions
+	 * */
+	public final Impl select(String... extsuggs) {
+		String[] versions = Collects.concat(supports(), Collects.concat(this.suggs, extsuggs));
+		Iterator<String> iter = Collects.iterate(versions);
+		Impl result = null;
 		String version = null;
 		
-		//collect data
-		if(version == null) version = support_forge();
-		if(version == null) version = support_user();
-		
-		try {
-			String internalVersion = version.replace(".", "");
-			return (Impl) Class.forName("tpc.mc.emc.runtime.impl".concat(internalVersion).concat(".Impl").concat(internalVersion)).newInstance();
-		} catch(Throwable e) {
-			if(version != null && !version.trim().isEmpty()) throw new UnsupportedException("Unsupported MCVersion '".concat(version).concat("'"));
-			else throw new UnsupportedException("Empty MCVersion Unsupported!");
+		//roll all to find
+		while(iter.hasNext()) {
+			version = iter.next();
+			
+			//try to get
+			try {
+				String internalVersion = version.replace(".", "");
+				
+				//find constructor
+				Constructor con = Class.forName("tpc.mc.emc.runtime.impl".concat(internalVersion).concat(".Impl").concat(internalVersion)).getDeclaredConstructor();
+				con.setAccessible(true);
+				
+				//init
+				result = (Impl) con.newInstance();
+				
+				//break the loop
+				break;
+			} catch(Throwable e) {}
 		}
+		
+		if(result == null) throw new UnsupportedException("Unsupported MCVersions " + Arrays.asList(versions));
+		
+		//config in
+		try {
+			Reflect.located(Impl.class, "version_mc").set(result, version);
+		} catch(Throwable e) {
+			throw new BootstrapMethodError("Unknown Error", e);
+		}
+		
+		//return result
+		return result;
+	}
+	
+	/**
+	 * Get the implements by Bootstrap
+	 * */
+	public static final Impl select() {
+		return SELECTED;
+	}
+	
+	/**
+	 * Get all support
+	 * */
+	private static final String[] supports() {
+		LinkedList<String> result = new LinkedList<>();
+		String support = null;
+		
+		//collect data
+		if((support = support_forge()) != null) result.add(support);
+		
+		return result.toArray(new String[result.size()]);
 	}
 	
 	/**
@@ -45,13 +102,5 @@ public final class Selector {
 		}
 	}
 	
-	/**
-	 * Get the mcversion from user
-	 * */
-	private static final String support_user() {
-		return USER;
-	}
-	
-	private static final String USER = null; //WILL BE SET BY BOOTSTRAP, NOTICE THAT IT MAY STILL BE NULL
-	private static final SafeCallable<Impl> STATIC = () -> $impl();
+	private static final Impl SELECTED = null; //BE SET BY BOOTSTRAP
 }
