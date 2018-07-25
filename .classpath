@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
+		<accessrules>
+			<accessrule kind="accessible" pattern="sun/reflect/Reflection"/>
+			<accessrule kind="accessible" pattern="sun/reflect/CallerSensitive"/>
+		</accessrules>
+	</classpathentry>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/Client"/>
 	<classpathentry kind="lib" path="ext/asm-all-6.0_BETA.jar" sourcepath="ext/asm-all-6.0_BETA-sources.jar"/>

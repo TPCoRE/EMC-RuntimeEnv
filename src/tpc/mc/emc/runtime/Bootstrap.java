@@ -7,6 +7,7 @@ import java.security.ProtectionDomain;
 
 import tpc.mc.emc.platform.standard.EMC;
 import tpc.mc.emc.platform.standard.IMath;
+import tpc.mc.emc.runtime.impls.IImpl;
 import tpc.mc.emc.runtime.util.Reflect;
 import tpc.mc.emc.runtime.util.Selector;
 import tpc.mc.emc.runtime.util.Shutdown;
@@ -23,8 +24,8 @@ public final class Bootstrap {
 		System.out.println("EMC RuntimeEnv Start! With EMC " + EMC.current());
 		
 		//INIT SELECTOR
-		Reflect.located(Selector.class, "SELECTED").set(null, new Selector().select(arg));
-		Impl current = Selector.select();
+		Reflect.located(Selector.class, "SELECTED").set(null, new Selector().select(arg != null ? arg.split(",") : null));
+		IImpl current = Selector.select();
 		
 		System.out.println("EMC Platform Implement " + current);
 		

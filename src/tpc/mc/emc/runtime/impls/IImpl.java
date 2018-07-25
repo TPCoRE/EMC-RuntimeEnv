@@ -1,4 +1,4 @@
-package tpc.mc.emc.runtime;
+package tpc.mc.emc.runtime.impls;
 
 import tpc.mc.emc.platform.PlatformInfo;
 import tpc.mc.emc.platform.standard.IMath;
@@ -6,7 +6,7 @@ import tpc.mc.emc.platform.standard.IMath;
 /**
  * Platform Implement
  * */
-public abstract class Impl {
+public abstract class IImpl {
 	
 	private final String vendor_mc;
 	private final String vendor_impl;
@@ -16,7 +16,7 @@ public abstract class Impl {
 	/**
 	 * Init Config
 	 * */
-	protected Impl(String vendor_mc, String vendor_impl, String version_impl) {
+	protected IImpl(String vendor_mc, String vendor_impl, String version_impl) {
 		this.vendor_mc = vendor_mc;
 		this.vendor_impl = vendor_impl;
 		this.version_impl = version_impl;

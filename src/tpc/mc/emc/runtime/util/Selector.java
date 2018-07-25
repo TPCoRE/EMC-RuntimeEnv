@@ -2,18 +2,23 @@ package tpc.mc.emc.runtime.util;
 
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import tpc.mc.emc.err.UnsupportedException;
-import tpc.mc.emc.runtime.Impl;
+import tpc.mc.emc.runtime.impls.IImpl;
 
 /**
  * RuntimeEnv selector
  * */
 public final class Selector {
 	
-	private final String[] suggs;
+	private final Collection<String> suggs;
 	
 	/**
 	 * Create a selector without any suggestions
@@ -26,69 +31,115 @@ public final class Selector {
 	 * Create a selector with some suggestions
 	 * */
 	public Selector(String... suggs) {
-		this.suggs = suggs;
+		assert(suggs != null);
+		
+		if(suggs.length == 0) this.suggs = Collections.EMPTY_SET;
+		else {
+			this.suggs = new HashSet<>(Arrays.asList(suggs.clone()));
+			this.suggs.removeIf(INVALIDS);
+		}
 	}
 	
 	/**
-	 * Select a implements with extend suggestions
+	 * Select an implement with more suggestions
 	 * */
-	public final Impl select(String... extsuggs) {
-		String[] versions = Collects.concat(supports(), Collects.concat(this.suggs, extsuggs));
-		Iterator<String> iter = Collects.iterate(versions);
-		Impl result = null;
-		String version = null;
+	public final IImpl select(String... extsuggs) {
+		assert(extsuggs != null);
 		
-		//roll all to find
-		while(iter.hasNext()) {
-			version = iter.next();
-			
-			//try to get
-			try {
-				String internalVersion = version.replace(".", "");
-				
-				//find constructor
-				Constructor con = Class.forName("tpc.mc.emc.runtime.impl".concat(internalVersion).concat(".Impl").concat(internalVersion)).getDeclaredConstructor();
-				con.setAccessible(true);
-				
-				//init
-				result = (Impl) con.newInstance();
-				
-				//break the loop
-				break;
-			} catch(Throwable e) {}
+		Collection<String> trace = new LinkedHashSet<>();
+		Collection<String> tmp;
+		IImpl result;
+		
+		//collect data from supports
+		tmp = SUPPCACHE;
+		trace.addAll(tmp);
+		result = select0(tmp);
+		
+		//collect data from suggs
+		if(result == null) {
+			tmp = this.suggs;
+			trace.addAll(tmp);
+			result = select0(tmp);
 		}
 		
-		if(result == null) throw new UnsupportedException("Unsupported MCVersions " + Arrays.asList(versions));
-		
-		//config in
-		try {
-			Reflect.located(Impl.class, "version_mc").set(result, version);
-		} catch(Throwable e) {
-			throw new BootstrapMethodError("Unknown Error", e);
+		//collect data from extsuggs
+		if(result == null && extsuggs.length != 0) {
+			tmp = new HashSet<>(Arrays.asList(extsuggs.clone()));
+			tmp.removeIf(INVALIDS);
+			trace.addAll(tmp);
+			result = select0(tmp);
 		}
 		
-		//return result
+		//check
+		if(result == null) {
+			if(trace.isEmpty()) throw new UnsupportedException("Empty MCVersion Unsupported!");
+			else throw new UnsupportedException("Unsupported MCVersions ".concat(trace.toString()));
+		}
+		
 		return result;
 	}
 	
 	/**
-	 * Get the implements by Bootstrap
+	 * Get the implement that selected by Bootstrap
 	 * */
-	public static final Impl select() {
+	public static final IImpl select() {
 		return SELECTED;
 	}
 	
 	/**
-	 * Get all support
+	 * Select an implement with suggestions
 	 * */
-	private static final String[] supports() {
-		LinkedList<String> result = new LinkedList<>();
-		String support = null;
+	private static final IImpl select0(Collection<String> suggestions) {
+		if(suggestions.isEmpty()) return null;
+		
+		//prepare
+		Iterator<String> iter = suggestions.iterator();
+		IImpl result = null;
+		String version = null;
+		
+		//roll to find
+		while(iter.hasNext()) {
+			version = iter.next().trim();
+			
+			//try get
+			try {
+				String internalVersion = version.replace(".", "");
+				
+				//find constructor
+				Constructor con = Class.forName("tpc.mc.emc.runtime.impls.impl".concat(internalVersion).concat(".Impl").concat(internalVersion)).getDeclaredConstructor();
+				con.setAccessible(true);
+				
+				//init
+				result = (IImpl) con.newInstance();
+				break; //break the loop
+			} catch(Throwable e) {}
+		}
+		
+		//config info
+		if(result != null) {
+			try {
+				Reflect.located(IImpl.class, "version_mc").set(result, version);
+			} catch(Throwable e) {
+				throw new BootstrapMethodError("Unknown Error", e);
+			}
+		}
+		
+		//return the result
+		return result;
+	}
+	
+	/**
+	 * Collect support data
+	 * */
+	private static final Collection<String> support() {
+		Collection<String> data = new LinkedHashSet<>();
+		String ver;
 		
 		//collect data
-		if((support = support_forge()) != null) result.add(support);
+		if((ver = support_forge()) != null) data.add(ver);
 		
-		return result.toArray(new String[result.size()]);
+		data.removeIf(INVALIDS);
+		return data;
 	}
 	
 	/**
@@ -102,5 +153,7 @@ public final class Selector {
 		}
 	}
 	
-	private static final Impl SELECTED = null; //BE SET BY BOOTSTRAP
+	private static final IImpl SELECTED = null; //SET BY BOOTSTRAP
+	private static final Predicate<String> INVALIDS = (x) -> x == null || x.trim().isEmpty();
+	private static final Collection<String> SUPPCACHE = support();
 }
