@@ -7,6 +7,7 @@
 		</accessrules>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="src_impl164"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/Client"/>
 	<classpathentry kind="lib" path="ext/asm-all-6.0_BETA.jar" sourcepath="ext/asm-all-6.0_BETA-sources.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/EMC"/>

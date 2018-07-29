@@ -41,7 +41,7 @@ public final class Selector {
 	}
 	
 	/**
-	 * Select an implement with more suggestions
+	 * Select an implement with more suggestions, will never return null
 	 * */
 	public final IImpl select(String... extsuggs) {
 		assert(extsuggs != null);
@@ -82,7 +82,7 @@ public final class Selector {
 	/**
 	 * Get the implement that selected by Bootstrap
 	 * */
-	public static final IImpl select() {
+	public static final IImpl selection() {
 		return SELECTED;
 	}
 	

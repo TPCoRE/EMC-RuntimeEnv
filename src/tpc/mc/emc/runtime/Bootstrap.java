@@ -4,7 +4,9 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
+import java.util.LinkedList;
 
+import tpc.mc.emc.platform.PlatformInfo;
 import tpc.mc.emc.platform.standard.EMC;
 import tpc.mc.emc.platform.standard.IMath;
 import tpc.mc.emc.runtime.impls.IImpl;
@@ -24,12 +26,18 @@ public final class Bootstrap {
 		System.out.println("EMC RuntimeEnv Start! With EMC " + EMC.current());
 		
 		//INIT SELECTOR
-		Reflect.located(Selector.class, "SELECTED").set(null, new Selector().select(arg != null ? arg.split(",") : null));
-		IImpl current = Selector.select();
+		IImpl current = new Selector().select(arg != null ? split0(arg) : new String[0]);
+		Reflect.located(Selector.class, "SELECTED").set(null, current);
 		
 		System.out.println("EMC Platform Implement " + current);
 		
-		//INIT IMATH
+		//INIT
+		Reflect.located(PlatformInfo.class, "VERSION_MC").set(null, current.misc(IImpl.VERSION_MC));
+		Reflect.located(PlatformInfo.class, "VENDOR_MC").set(null, current.misc(IImpl.VENDOR_MC));
+		Reflect.located(PlatformInfo.class, "VENDOR_URL_MC").set(null, current.misc(IImpl.VENDOR_URL_IMPL));
+		Reflect.located(PlatformInfo.class, "VERSION_IMPL").set(null, current.misc(IImpl.VERSION_IMPL));
+		Reflect.located(PlatformInfo.class, "VENDOR_IMPL").set(null, current.misc(IImpl.VENDOR_IMPL));
+		Reflect.located(PlatformInfo.class, "VENDOR_URL_IMPL").set(null, current.misc(IImpl.VENDOR_URL_IMPL));
 		Reflect.located(IMath.class, "IMPL").set(null, current.math());
 		
 		//REGISTER CLASS TRANSFORMER
@@ -74,5 +82,36 @@ public final class Bootstrap {
 		 * 
 		 * FINALLY I FIND IF THERE IS A FILTER '!c.getName().startsWith("java.lang.invoke.Lambda")', IT WILL RUN SAFELY
 		 * */
+	}
+	
+	/**
+	 * Split the given string smartly
+	 * */
+	private static final String[] split0(String in) {
+		LinkedList<String> r = new LinkedList<>();
+		char[] arr = in.toCharArray();
+		int i, l, tmp = 0;
+		boolean status = false;
+		
+		//roll to split
+		for(i = 0, l = arr.length; i < l; ++i) {
+			char c = arr[i];
+			
+			//find
+			if(!Character.isDigit(c) && c != '.') {
+				if(status) r.add(in.substring(tmp, i));
+				
+				status = false;
+			} else {
+				if(!status) tmp = i;
+				status = true;
+			}
+		}
+		
+		//add the last one
+		if(status) r.add(in.substring(tmp, i));
+		
+		//return the result
+		return r.toArray(new String[r.size()]);
 	}
 }
