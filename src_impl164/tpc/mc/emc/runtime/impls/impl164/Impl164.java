@@ -6,10 +6,9 @@ import java.net.URL;
 import net.minecraft.src.MathHelper;
 import tpc.mc.emc.platform.standard.IMath;
 import tpc.mc.emc.runtime.impls.IImpl;
+import tpc.mc.emc.runtime.impls.impl164.mc.CodeRuler;
+import tpc.mc.emc.runtime.util.Injector;
 
-/**
- * For 1.6.4
- * */
 final class Impl164 extends IImpl {
 	
 	/**
@@ -19,9 +18,6 @@ final class Impl164 extends IImpl {
 		super("Mojang", "NullaDev", "0.0.0", new URL("https://mojang.com/"), new URL("https://github.com/TPCoRE/EMC-RuntimeEnv"));
 	}
 	
-	/**
-	 * Get a new one
-	 * */
 	@Override
 	public IMath math() {
 		return new IMath() {
@@ -38,11 +34,8 @@ final class Impl164 extends IImpl {
 		};
 	}
 	
-	/**
-	 * Rule the code
-	 * */
 	@Override
 	public byte[] rule(byte[] klass, String name) {
-		return null; //TODO
+		return CodeRuler.rule(klass, name);
 	}
 }

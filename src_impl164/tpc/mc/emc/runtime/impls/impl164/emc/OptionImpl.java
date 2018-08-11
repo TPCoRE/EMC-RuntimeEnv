@@ -5,42 +5,44 @@ import tpc.mc.emc.platform.standard.IContext;
 import tpc.mc.emc.platform.standard.IOption;
 
 /**
- * For 1.6.4
+ * IOption FOR 1.6.4
  * */
-public final class OptionImpl extends IOption {
+public final class OptionImpl implements IOption, Cloneable {
 	
-	public final EntityPlayer player;
-	public final Object renderPlayer;
+	final EntityPlayer player;
 	
 	/**
-	 * Create an instance
+	 * Public Use
 	 * */
 	public OptionImpl(EntityPlayer player) {
-		this(player, null);
-	}
-	
-	/**
-	 * Create an opt with a render
-	 * */
-	public OptionImpl(EntityPlayer player, Object render) {
 		assert(player != null);
 		
 		this.player = player;
-		this.renderPlayer = render;
 	}
 	
 	@Override
 	public boolean model() {
-		return this.renderPlayer != null;
+		return this.player.worldObj.isRemote;
 	}
 	
 	@Override
-	public IContext alloc() {
-		return null; //TODO
+	public ContextImpl alloc() {
+		return new ContextImpl(this);
 	}
 	
 	@Override
 	public OptionImpl clone() {
-		return new OptionImpl(this.player, this.renderPlayer);
+		return new OptionImpl(this.player);
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(obj == this) return true;
+		if(obj == null) return false;
+		if(!obj.getClass().equals(OptionImpl.class)) return false;
+		
+		OptionImpl opt = (OptionImpl) obj;
+		
+		return this.player.equals(opt.player) && this.model() == opt.model();
 	}
 }

@@ -4,8 +4,10 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
+import java.util.Arrays;
 
+import net.minecraft.src.Entity;
 import tpc.mc.emc.platform.PlatformInfo;
 import tpc.mc.emc.platform.standard.EMC;
 import tpc.mc.emc.platform.standard.IMath;
@@ -59,8 +61,9 @@ public final class Bootstrap {
 		
 		//RETRANSFORM
 		Class[] cs = inst.getAllLoadedClasses();
-		for(Class c : cs) 
+		for(Class c : cs) {
 			if(inst.isModifiableClass(c) && !c.getName().startsWith("java.lang.invoke.Lambda")) inst.retransformClasses(c);
+		}
 		
 		/*
 		 * FOR '!c.getName().startsWith("java.lang.invoke.Lambda")'
@@ -88,7 +91,7 @@ public final class Bootstrap {
 	 * Split the given string smartly
 	 * */
 	private static final String[] split0(String in) {
-		LinkedList<String> r = new LinkedList<>();
+		ArrayDeque<String> r = new ArrayDeque<>();
 		char[] arr = in.toCharArray();
 		int i, l, tmp = 0;
 		boolean status = false;

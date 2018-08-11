@@ -1,33 +1,30 @@
-package tpc.mc.emc.runtime.impls.impl164.emc.util;
+package tpc.mc.emc.runtime.impls.impl164.emc;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-import net.minecraft.src.EntityPlayer;
-import tpc.mc.emc.Stepable;
-import tpc.mc.emc.platform.standard.IOption;
-import tpc.mc.emc.runtime.impls.impl164.emc.OptionImpl;
-import tpc.mc.emc.tech.ITech;
+import tpc.mc.emc.tech.Technique;
 
 /**
- * Tech Board, notice that it is thread-unsafe
+ * Tech Board
  * */
-public final class TechBoard implements Serializable, Iterable<ITech>, Cloneable {
+public final class TechBoard implements Serializable, Iterable<Technique>, Cloneable {
 	
-	private Map<QuickSlot, ITech> quick = new EnumMap<>(QuickSlot.class);
-	private Map<Long, ITech> status = new HashMap<>();
+	private static final long serialVersionUID = 1L;
+	
+	private Map<QuickSlot, Technique> quick = new ConcurrentHashMap<>();
+	private Map<UUID, Technique> status = new ConcurrentHashMap<>();
 	
 	/**
 	 * Get the tech in the quick slot
 	 * */
-	public ITech quick(QuickSlot slot) {
+	public Technique quick(QuickSlot slot) {
 		assert(slot != null);
 		
 		return this.quick.get(slot);
@@ -36,16 +33,25 @@ public final class TechBoard implements Serializable, Iterable<ITech>, Cloneable
 	/**
 	 * Set, return the old
 	 * */
-	public ITech quick(QuickSlot slot, ITech tech) {
+	public Technique quick(QuickSlot slot, Technique tech) {
 		Objects.requireNonNull(slot);
 		
-		return this.quick.put(slot, tech);
+		return tech == null ? this.quick.remove(slot) : this.quick.put(slot, tech);
+	}
+	
+	/**
+	 * Get the tech by id
+	 * */
+	public Technique deal(UUID uuid) {
+		assert(uuid != null);
+		
+		return this.status.get(uuid);
 	}
 	
 	/**
 	 * Check if the tech is available
 	 * */
-	public boolean check(ITech tech) {
+	public boolean check(Technique tech) {
 		assert(tech != null);
 		
 		return this.status.containsKey(tech.identifier());
@@ -54,7 +60,7 @@ public final class TechBoard implements Serializable, Iterable<ITech>, Cloneable
 	/**
 	 * Change the available status of the tech
 	 * */
-	public void toggle(ITech tech, boolean status) {
+	public void toggle(Technique tech, boolean status) {
 		Objects.requireNonNull(tech);
 		
 		if(status) this.status.put(tech.identifier(), tech);
@@ -67,8 +73,8 @@ public final class TechBoard implements Serializable, Iterable<ITech>, Cloneable
 	public TechBoard accept(TechBoard exporter) {
 		assert(exporter != null);
 		
-		this.quick = new EnumMap<>(exporter.quick);
-		this.status = new HashMap<>(exporter.status);
+		this.quick = new ConcurrentHashMap<>(exporter.quick);
+		this.status = new ConcurrentHashMap<>(exporter.status);
 		
 		return this;
 	}
@@ -96,8 +102,15 @@ public final class TechBoard implements Serializable, Iterable<ITech>, Cloneable
 	 * Peek all avails
 	 * */
 	@Override
-	public Iterator<ITech> iterator() {
+	public Iterator<Technique> iterator() {
 		return Collections.unmodifiableCollection(this.status.values()).iterator();
+	}
+	
+	/**
+	 * Peek
+	 * */
+	public Collection<Technique> avail() {
+		return Collections.unmodifiableCollection(this.status.values());
 	}
 	
 	/**

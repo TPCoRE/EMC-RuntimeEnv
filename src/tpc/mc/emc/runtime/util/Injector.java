@@ -161,6 +161,8 @@ public final class Injector {
 	}
 	
 	public static final Predicate<AbstractInsnNode> RETURN = (x) -> x.getOpcode() == Opcodes.RETURN;
+	public static final Predicate<AbstractInsnNode> IRETURN = (x) -> x.getOpcode() == Opcodes.IRETURN;
+	public static final Predicate<AbstractInsnNode> ARETURN = (x) -> x.getOpcode() == Opcodes.ARETURN;
 	public static final Predicate<MethodNode> INIT = (x) -> x.name.equals("<init>");
 	public static final Predicate<MethodNode> CLINIT = (x) -> x.name.equals("<clinit>");
 }
